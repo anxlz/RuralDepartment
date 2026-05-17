@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSlider } from '@/hooks/useSlider'
 import { HERO_SLIDES } from '@/lib/assets'
 
 const stats = [
-  { emoji: '📖', value: '240+', label: 'منشور'          },
-  { emoji: '🔬', value: '85+',  label: 'بحث علمي'       },
-  { emoji: '⭐', value: '30+',  label: 'عام من التميز'  },
+  { emoji: '📖', value: '240+',  label: 'منشور'         },
+  { emoji: '🔬', value: '85+',   label: 'بحث علمي'      },
+  { emoji: '⭐', value: '30+',   label: 'عام من التميز' },
   { emoji: '🎓', value: '1200+', label: 'طالب'          },
 ]
 
@@ -21,16 +21,31 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
 }
 
+// Slide-in / slide-out variants driven by direction
+// direction 'left'  → new slide enters from the right  (+100 % → 0)
+// direction 'right' → new slide enters from the left   (-100 % → 0)
+function makeSlideVariants(direction: 'left' | 'right') {
+  const enter = direction === 'left' ? '100%' : '-100%'
+  const exit  = direction === 'left' ? '-100%' : '100%'
+  return {
+    enter:  { x: enter,  opacity: 0 },
+    center: { x: 0,      opacity: 1 },
+    exit:   { x: exit,   opacity: 0 },
+  }
+}
+
 interface HeroProps {
   onOpenVideo: () => void
 }
 
 export function Hero({ onOpenVideo }: HeroProps) {
   const heroRef = useRef<HTMLElement>(null)
-  const { current, goTo, next, prev, pause, resume } = useSlider({
+  const { current, direction, goTo, next, prev, pause, resume } = useSlider({
     count: HERO_SLIDES.length,
     interval: 3000,
   })
+
+  const slideVariants = makeSlideVariants(direction)
 
   // Pause on hover
   useEffect(() => {
@@ -44,27 +59,26 @@ export function Hero({ onOpenVideo }: HeroProps) {
     }
   }, [pause, resume])
 
-  // Touch swipe support
+  // Touch swipe
   useEffect(() => {
     const el = heroRef.current
     if (!el) return
     let startX = 0
     const onStart = (e: TouchEvent) => { startX = e.touches[0].clientX }
-    const onEnd = (e: TouchEvent) => {
+    const onEnd   = (e: TouchEvent) => {
       const diff = startX - e.changedTouches[0].clientX
       if (Math.abs(diff) > 50) diff > 0 ? next() : prev()
     }
     el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchend', onEnd, { passive: true })
+    el.addEventListener('touchend',   onEnd,   { passive: true })
     return () => {
       el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchend',   onEnd)
     }
   }, [next, prev])
 
-  const scrollToPartners = () => {
+  const scrollToPartners = () =>
     document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <section
@@ -72,51 +86,55 @@ export function Hero({ onOpenVideo }: HeroProps) {
       id="hero"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
-      {/* ── Slide backgrounds ── */}
-      <div className="absolute inset-0 z-0">
-        {HERO_SLIDES.map((slide, i) => (
-          <div
-            key={slide.src}
-            className={cn(
-              'absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-[1200ms] ease-in-out',
-              i === current ? 'opacity-100' : 'opacity-0',
-            )}
-            style={{ backgroundImage: `url(${slide.src})` }}
-            aria-hidden={i !== current}
+      {/* ── Sliding image track ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={current}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat will-change-transform"
+            style={{ backgroundImage: `url(${HERO_SLIDES[current].src})` }}
+            aria-label={HERO_SLIDES[current].alt}
           />
-        ))}
+        </AnimatePresence>
       </div>
 
-      {/* ── Overlays ── */}
+      {/* ── Dark / mesh overlays ── */}
       <div
-        className="absolute inset-0 z-[1]"
+        className="absolute inset-0 z-[1] pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(28,43,10,0.82) 0%, rgba(45,80,22,0.65) 50%, rgba(10,20,4,0.75) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(28,43,10,0.82) 0%, rgba(45,80,22,0.65) 50%, rgba(10,20,4,0.75) 100%)',
         }}
       />
       <div
-        className="absolute inset-0 z-[2]"
+        className="absolute inset-0 z-[2] pointer-events-none"
         style={{
           background:
             'radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.12) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(61,107,30,0.18) 0%, transparent 55%)',
         }}
       />
-      <div className="absolute inset-0 z-[2] pattern-overlay" />
+      <div className="absolute inset-0 z-[2] pattern-overlay pointer-events-none" />
 
-      {/* ── Slider arrows ── */}
-      {/* RTL: prev = right arrow, next = left arrow */}
+      {/* ── Arrow: next (RTL right side = visually "previous" slide) ── */}
       <button
         onClick={next}
-        aria-label="الصورة السابقة"
-        className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center text-cream glass border border-white/20 transition-all duration-200 hover:bg-gold/30 hover:border-gold/50 hover:scale-105 active:scale-95"
+        aria-label="الصورة التالية"
+        className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-cream glass border border-white/20 transition-all duration-200 hover:bg-gold/30 hover:border-gold/50 hover:scale-105 active:scale-95"
       >
         <ChevronRight size={20} strokeWidth={2.5} />
       </button>
 
+      {/* ── Arrow: prev ── */}
       <button
         onClick={prev}
-        aria-label="الصورة التالية"
-        className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center text-cream glass border border-white/20 transition-all duration-200 hover:bg-gold/30 hover:border-gold/50 hover:scale-105 active:scale-95"
+        aria-label="الصورة السابقة"
+        className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-cream glass border border-white/20 transition-all duration-200 hover:bg-gold/30 hover:border-gold/50 hover:scale-105 active:scale-95"
       >
         <ChevronLeft size={20} strokeWidth={2.5} />
       </button>
@@ -165,7 +183,6 @@ export function Hero({ onOpenVideo }: HeroProps) {
             variants={itemVariants}
             className="flex flex-wrap gap-4 justify-center items-center mb-12"
           >
-            {/* Video button */}
             <button onClick={onOpenVideo} className="btn-glass flex items-center gap-3">
               <span className="w-8 h-8 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
                 <svg viewBox="0 0 24 24" className="w-3 h-3 fill-olive ml-0.5" xmlns="http://www.w3.org/2000/svg">
@@ -175,7 +192,6 @@ export function Hero({ onOpenVideo }: HeroProps) {
               شاهد الفيديو
             </button>
 
-            {/* Scroll down */}
             <button onClick={scrollToPartners} className="btn-glass flex items-center gap-2">
               <ChevronDown size={16} />
               شاهد المزيد
@@ -205,7 +221,7 @@ export function Hero({ onOpenVideo }: HeroProps) {
         </motion.div>
       </div>
 
-      {/* ── Slide dots ── */}
+      {/* ── Dots ── */}
       <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex gap-2">
         {HERO_SLIDES.map((_, i) => (
           <button
@@ -233,7 +249,7 @@ export function Hero({ onOpenVideo }: HeroProps) {
       </motion.div>
 
       {/* ── Bottom fade ── */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[var(--bg)] to-transparent z-[5]" />
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[var(--bg)] to-transparent z-[5] pointer-events-none" />
     </section>
   )
 }
