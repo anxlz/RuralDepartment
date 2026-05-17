@@ -213,7 +213,7 @@ export function Partners() {
           {/* 2 — جامعة عين شمس */}
           <PartnerCard
             href="https://www.asu.edu.eg"
-            logoSrc="https://upload.wikimedia.org/wikipedia/en/5/5a/Ain_Shams_logo.png"
+            logoSrc="https://upload.wikimedia.org/wikipedia/en/3/3d/Ain_Shams_logo.png"
             logoAlt="جامعة عين شمس"
             fallbackEmoji="🏛️"
             logoWrapClass="w-28 h-28"
@@ -228,7 +228,7 @@ export function Partners() {
           {/* 3 — د. إيمان أبو قمر */}
           <PartnerCard
             name="د. إيمان أبو قمر"
-            role="أستاذة القسم"
+            role="دكتورة"
             description="عضو هيئة التدريس في قسم المجتمع الريفي، كلية الزراعة، جامعة عين شمس."
             tags={['أكاديمية', 'مجتمع ريفي']}
             fallbackEmoji="👩‍🎓"
