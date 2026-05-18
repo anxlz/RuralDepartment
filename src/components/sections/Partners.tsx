@@ -238,9 +238,9 @@ export function Partners() {
             animDelay="0.24s"
           />
 
-          {/* 4 — د. جسنت ريحان (centered in row 2 of 3-col) */}
+          {/* 4 — د. جاسنت ريحان (centered in row 2 of 3-col) */}
           <PartnerCard
-            name="د. جسنت ريحان"
+            name="د. جاسنت ريحان"
             role="أستاذة القسم"
             description="عضو هيئة التدريس في قسم المجتمع الريفي، كلية الزراعة، جامعة عين شمس."
             tags={['أكاديمية', 'مجتمع ريفي']}
